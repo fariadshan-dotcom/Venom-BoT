@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TRADER SHAN | Smart Signal Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07111f;--sf:rgba(15,29,49,.92);--ink:#edf5ff;--mut:#9bb0ca;--ln:#28415e;--ac:#19c6a5;--buy:#42e6a4;--sell:#ff6b83;--wait:#ffd166;--wbg:#302918;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root[data-theme="light"]{--bg:#edf4fb;--sf:#fff;--ink:#14243a;--mut:#5b6d82;--ln:#cbd8e7;--ac:#087e73;--buy:#087a4b;--sell:#b3261e;--wait:#8a5a00;--wbg:#fff3d6}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at 15% 0%,rgba(18,104,139,.30),transparent 38%),radial-gradient(ellipse at 95% 25%,rgba(92,53,153,.25),transparent 35%),linear-gradient(145deg,#050b15,#0a1728 55%,#10132a);background-attachment:fixed;color:var(--ink);font-family:"Hind Siliguri","Noto Sans Bengali","Segoe UI",sans-serif;line-height:1.6;min-height:100vh}
+main{max-width:760px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:clamp(1.7rem,6vw,2.4rem);margin:0 0 4px;letter-spacing:.04em;background:linear-gradient(90deg,#69f0d0,#75b8ff,#d8a7ff);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700}
+h2{font-size:1.05rem;margin:14px 0 6px}
+.sub{color:var(--mut);margin:0 0 10px}
+.warn{background:var(--wbg);color:var(--wait);border-left:4px solid var(--wait);padding:10px 14px;margin:12px 0;border-radius:4px}
+section{background:var(--sf);backdrop-filter:blur(12px);border:1px solid rgba(112,157,199,.25);box-shadow:0 14px 40px rgba(0,0,0,.22);border-radius:16px;padding:16px;margin:14px 0}
+input[type=file]{width:100%;font:inherit;color:var(--ink)}
+input[type=range]{width:100%}
+select{width:100%;font:inherit;color:var(--ink);background:#0c1b2e;border:1px solid var(--ln);border-radius:10px;padding:10px}
+canvas{width:100%;height:auto;border:1px solid var(--ln);border-radius:12px;display:block;margin-top:10px;background:#07111f}
+label{display:block;font-weight:500;margin-top:8px}
+button{font:inherit;font-weight:700;border:0;border-radius:11px;padding:13px 18px;cursor:pointer;background:linear-gradient(100deg,#0eaa92,#2876d8);color:#fff;margin-top:12px;width:100%;box-shadow:0 8px 22px rgba(20,151,180,.2)}
+:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.sig{font-size:2.4rem;font-weight:700;margin:0}
+.Buy{color:var(--buy)}.Sell{color:var(--sell)}.wait{color:var(--wait)}
+ul{margin:4px 0 0;padding-left:20px}
+table{border-collapse:collapse;width:100%}
+td{border-bottom:1px solid var(--ln);padding:5px 4px}
+.err{color:var(--sell)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<h1>TRADER SHAN</h1>
+<p style="margin:0 0 8px;font-weight:700;letter-spacing:.12em;color:#7dd3fc">SMART SIGNAL GENERATOR</p>
+<p class="sub">স্ক্রিনশট-ভিত্তিক টেকনিক্যাল অ্যানালাইসিস: EMA, Bollinger Bands, RSI, MACD, Stochastic, ADX, Support/Resistance এবং Trendline কনফার্মেশন।</p>
+<div class="warn">গুরুত্বপূর্ণ: এটি স্ক্রিনশটের পিক্সেল থেকে ক্যান্ডেল ও লেভেল শনাক্ত করে—লাইভ OHLC ডেটা নয়। তাই কোনো সফটওয়্যারই এখান থেকে “একদম authentic” বা নিশ্চিত লাভের সিগন্যাল দিতে পারে না। আগে Demo-তে পরীক্ষা করুন।</div>
+
+
+<section id="apiPanel">
+<h2>LIVE DATA CONNECTION — OHLC API</h2>
+<p class="sub">Backend URL দিলে নিরাপদে ১ মিনিটের OHLC ডেটা পরীক্ষা করা যাবে। API key এই HTML-এ রাখা হয় না।</p>
+<label for="backendUrl">তোমার deployed backend URL</label>
+<input id="backendUrl" type="url" placeholder="https://your-backend.example.com" style="width:100%;font:inherit;padding:11px;border:1px solid var(--ln);border-radius:10px;background:#0c1b2e;color:var(--ink)">
+<label for="apiVenue">Market</label>
+<select id="apiVenue"><option value="otc">OTC</option><option value="quotex">Quotex (যদি API plan-এ থাকে)</option></select>
+<label for="apiSymbol">Symbol</label>
+<select id="apiSymbol"><option value="AUDUSD_otc">AUDUSD OTC</option><option value="EURUSD_otc">EURUSD OTC</option><option value="GBPUSD_otc">GBPUSD OTC</option><option value="EURUSD">EURUSD Live (যদি feed-এ থাকে)</option></select>
+<button id="testApi" type="button">OHLC ডেটা পরীক্ষা করুন</button>
+<p id="apiStatus" class="sub" aria-live="polite">API এখনো সংযুক্ত নয়। Backend deploy করার পর URL দিন।</p>
+<div id="apiResults" hidden><p id="apiMeta" class="sub"></p><table id="apiTable"></table></div>
+<div class="warn">সতর্কতা: এই প্যানেল নিজে থেকে কোনো Quotex trade করে না। ডেটা endpoint বা symbol ভুল হলে সিগন্যাল তৈরি হবে না।</div>
+</section>
+
+<section>
+<h2>১. স্ক্রিনশট দিন</h2>
+<p class="sub">ফোন আড়াআড়ি (ল্যান্ডস্কেপ) করে চার্ট জুম আউট করুন, যাতে কমপক্ষে ৫০-৬০টা ক্যান্ডেল দেখা যায়। ক্যান্ডেল শেষ হতে ২০-২৫ সেকেন্ড বাকি থাকতে স্ক্রিনশট নিন।</p>
+<input id="file" type="file" accept="image/*" aria-label="স্ক্রিনশট বেছে নিন">
+<canvas id="cv" width="10" height="10"></canvas>
+<div id="ctl" hidden>
+<h2>২. ক্যান্ডেলের অংশ (নিজে ঠিক হয়)</h2>
+<p class="sub">স্ক্রিনশট দিলেই হলুদ বক্স নিজে ঠিক হয়। ঠিক না লাগলে স্লাইডার দিয়ে বদলান, বক্সে শুধু ক্যান্ডেল থাকবে।</p>
+<label for="cl">বাঁ দিক</label><input id="cl" type="range" min="0" max="100" step="0.5">
+<label for="cr">ডান দিক</label><input id="cr" type="range" min="0" max="100" step="0.5">
+<label for="ct">উপর</label><input id="ct" type="range" min="0" max="100" step="0.5">
+<label for="cb">নিচ</label><input id="cb" type="range" min="0" max="100" step="0.5">
+<label for="sm">স্ট্র্যাটেজি</label>
+<select id="sm"><option value="both" selected>TRADER SHAN SMART MIX (সব কনফার্মেশন)</option><option value="ind">ইন্ডিকেটর + S/R + Trendline</option><option value="braz">Brazilian Candle Pattern</option></select>
+<button id="auto" type="button" style="background:transparent;color:var(--ac);border:1px solid var(--ac)">ক্রপ নিজে ঠিক করুন</button>
+<button id="go" type="button">সিগন্যাল দেখুন</button>
+</div>
+<p id="status" class="sub" aria-live="polite"></p>
+</section>
+
+<section id="out" hidden aria-live="polite">
+<p class="sig" id="sig"></p>
+<p id="meta" class="sub"></p>
+<h2>যে শর্ত মিলেছে</h2><ul id="met"></ul>
+<h2>যে শর্ত মেলেনি</h2><ul id="miss"></ul>
+<h2>ফিল্টার যাচাই</h2><ul id="flt"></ul>
+<h2>সতর্কতা</h2><ul id="wrn"></ul>
+<h2>ইন্ডিকেটর ও মার্কেট স্ট্রাকচার (ছবি থেকে হিসাব)</h2>
+<table id="vals"></table>
+<p class="sub">চার্টের রেখা: হলুদ = EMA ৯, নীল = EMA ২১, ধূসর = Bollinger, সবুজ = Support, গোলাপি = Resistance, আকাশি/বেগুনি = swing Trendline। রেখাগুলো ক্যান্ডেলের সাথে না মিললে ক্রপ ঠিক করুন।</p>
+</section>
+</main>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var cv=$("cv"),cx=cv.getContext("2d"),src=null,W=0,H=0,res=null;
+var bn=function(n,d){return Number(n).toLocaleString("bn-BD",{maximumFractionDigits:d===undefined?1:d})};
+var S={l:$("cl"),r:$("cr"),t:$("ct"),b:$("cb")};
+function box(){return{x:Math.round(S.l.value/100*W),y:Math.round(S.t.value/100*H),w:Math.max(10,Math.round((S.r.value-S.l.value)/100*W)),h:Math.max(10,Math.round((S.b.value-S.t.value)/100*H))}}
+
+function draw(){
+  if(!src)return;
+  cx.drawImage(src,0,0);
+  var b=box();cx.save();cx.strokeStyle="#ffd400";cx.lineWidth=Math.max(3,W/400);cx.setLineDash([12,8]);cx.strokeRect(b.x,b.y,b.w,b.h);cx.restore();
+  if(res){
+    var lw=Math.max(2,W/700);
+    var line=function(a,col){cx.beginPath();var st=false;a.forEach(function(v,i){if(v==null)return;var X=b.x+res.c[i].x,Y=b.y-v;if(!st){cx.moveTo(X,Y);st=true}else cx.lineTo(X,Y)});cx.strokeStyle=col;cx.lineWidth=lw;cx.stroke()};
+    line(res.ind.e9,"#ffd400");line(res.ind.e21,"#3fa7ff");line(res.ind.up,"#aaaaaa");line(res.ind.lo,"#aaaaaa");
+    if(res.structure){var st=res.structure;cx.save();cx.lineWidth=Math.max(2,W/900);cx.setLineDash([7,6]);
+      if(isFinite(st.sup)){cx.beginPath();cx.moveTo(b.x,b.y-st.sup);cx.lineTo(b.x+b.w,b.y-st.sup);cx.strokeStyle="#42e6a4";cx.stroke()}
+      if(isFinite(st.res)){cx.beginPath();cx.moveTo(b.x,b.y-st.res);cx.lineTo(b.x+b.w,b.y-st.res);cx.strokeStyle="#ff6b83";cx.stroke()}
+      var trendLine=function(f,col){if(!f)return;cx.beginPath();cx.moveTo(b.x,b.y-f.intercept);cx.lineTo(b.x+b.w,b.y-(f.intercept+f.slope*b.w));cx.strokeStyle=col;cx.stroke()};trendLine(st.fitLo,"#66d9ff");trendLine(st.fitHi,"#d6a3ff");cx.restore();
+    }
+  }
+}
+function setDefaults(){
+  var p=H>W;
+  S.l.value=p?0:4;S.r.value=p?97:85.5;S.t.value=p?16:36;S.b.value=p?74:94.5;
+}
+$("file").onchange=function(){
+  var f=this.files[0];if(!f)return;
+  var u=URL.createObjectURL(f),im=new Image();
+  im.onload=function(){
+    var s=Math.min(1,2600/Math.max(im.width,im.height));
+    W=Math.round(im.width*s);H=Math.round(im.height*s);
+    src=document.createElement("canvas");src.width=W;src.height=H;src.getContext("2d").drawImage(im,0,0,W,H);
+    cv.width=W;cv.height=H;res=null;setDefaults();$("ctl").hidden=false;$("out").hidden=true;$("status").textContent="";URL.revokeObjectURL(u);doAuto();
+  };
+  im.onerror=function(){$("status").textContent="ছবি পড়া যায়নি।";$("status").className="sub err"};
+  im.src=u;
+};
+Object.keys(S).forEach(function(k){S[k].oninput=function(){res=null;draw()}});
+
+/* ---- অটো ক্রপ ---- */
+function autoCrop(){
+  var w=W,h=H,d=src.getContext("2d").getImageData(0,0,w,h).data,N=w*h,m=new Uint8Array(N),i;
+  for(i=0;i<N;i++){var r=d[i*4],g=d[i*4+1],b=d[i*4+2];if((g>r+30&&g>b+10&&g>55)||(r>g+50&&r>b+40&&r>90))m[i]=1}
+  var seen=new Uint8Array(N),st=new Int32Array(N),comps=[],maxW=0.05*w;
+  for(i=0;i<N;i++){
+    if(!m[i]||seen[i])continue;
+    var sp=0,x0=w,x1=0,y0=h,y1=0;st[sp++]=i;seen[i]=1;
+    while(sp){
+      var p=st[--sp],px=p%w,py=(p-px)/w;
+      if(px<x0)x0=px;if(px>x1)x1=px;if(py<y0)y0=py;if(py>y1)y1=py;
+      if(px>0&&m[p-1]&&!seen[p-1]){seen[p-1]=1;st[sp++]=p-1}
+      if(px<w-1&&m[p+1]&&!seen[p+1]){seen[p+1]=1;st[sp++]=p+1}
+      if(py>0&&m[p-w]&&!seen[p-w]){seen[p-w]=1;st[sp++]=p-w}
+      if(py<h-1&&m[p+w]&&!seen[p+w]){seen[p+w]=1;st[sp++]=p+w}
+    }
+    if(x1-x0+1<=maxW&&y1-y0>=3)comps.push({x0:x0,x1:x1,y0:y0,y1:y1});
+  }
+  var wd=comps.map(function(q){return q.x1-q.x0+1}).filter(function(v){return v>=5}).sort(function(a,b){return a-b});
+  if(wd.length<20)return null;
+  var wm=wd[Math.floor(wd.length/2)];
+  comps.sort(function(a,b){return a.x0+a.x1-b.x0-b.x1});
+  var mg=[];
+  comps.forEach(function(q){
+    var l=mg[mg.length-1];
+    if(l&&Math.abs((q.x0+q.x1)/2-(l.x0+l.x1)/2)<0.5*wm&&Math.max(l.y0,q.y0)-Math.min(l.y1,q.y1)<=0.03*h){l.x0=Math.min(l.x0,q.x0);l.x1=Math.max(l.x1,q.x1);l.y0=Math.min(l.y0,q.y0);l.y1=Math.max(l.y1,q.y1)}
+    else mg.push({x0:q.x0,x1:q.x1,y0:q.y0,y1:q.y1});
+  });
+  mg=mg.filter(function(q){var v=q.x1-q.x0+1;return v>=0.4*wm&&v<=2.6*wm});
+  var gp=[];for(i=1;i<mg.length;i++){var gx=(mg[i].x0+mg[i].x1-mg[i-1].x0-mg[i-1].x1)/2;if(gx<4*wm)gp.push(gx)}
+  if(gp.length<10)return null;
+  gp.sort(function(a,b){return a-b});var pitch=gp[Math.floor(gp.length/2)];
+  var L=[],P=[],bi=0,j;
+  for(i=0;i<mg.length;i++){
+    L[i]=1;P[i]=-1;
+    for(j=i-1;j>=0;j--){
+      var gx=(mg[i].x0+mg[i].x1-mg[j].x0-mg[j].x1)/2;
+      if(gx>2.6*pitch)break;
+      var gy=Math.max(mg[i].y0,mg[j].y0)-Math.min(mg[i].y1,mg[j].y1);
+      if(gx>=0.5*pitch&&gy<=0.12*h&&L[j]+1>L[i]){L[i]=L[j]+1;P[i]=j}
+    }
+    if(L[i]>L[bi])bi=i;
+  }
+  var best=[];for(i=bi;i>=0;i=P[i])best.push(mg[i]);
+  if(best.length<25)return null;
+  var o={x0:w,x1:0,y0:h,y1:0,n:best.length};
+  best.forEach(function(q){o.x0=Math.min(o.x0,q.x0);o.x1=Math.max(o.x1,q.x1);o.y0=Math.min(o.y0,q.y0);o.y1=Math.max(o.y1,q.y1)});
+  return o;
+}
+function doAuto(){
+  if(!src)return;
+  var b=autoCrop(),sx=Math.round(0.006*W)+3,sy=Math.round(0.006*H)+4,st=$("status");
+  if(b){
+    S.l.value=Math.max(0,(b.x0-sx)/W*100);S.r.value=Math.min(100,(b.x1+sx)/W*100);
+    S.t.value=Math.max(0,(b.y0-sy)/H*100);S.b.value=Math.min(100,(b.y1+sy)/H*100);
+    st.textContent="ক্রপ নিজে ঠিক হয়েছে ("+bn(b.n,0)+"টা ক্যান্ডেল পাওয়া গেছে)। বক্স ঠিক না লাগলে স্লাইডার দিয়ে বদলান।";st.className="sub";
+  }else{
+    setDefaults();st.textContent="নিজে নিজে ক্রপ ঠিক করা যায়নি। স্লাইডার দিয়ে বক্স ঠিক করুন।";st.className="sub err";
+  }
+  res=null;draw();
+}
+/* ---- ক্যান্ডেল বের করা ---- */
+function extract(d,w,h){
+  var cls=new Uint8Array(w*h),col=new Uint16Array(w),i,x,y;
+  for(y=0;y<h;y++)for(x=0;x<w;x++){
+    i=(y*w+x)*4;var r=d[i],g=d[i+1],b=d[i+2],k=0;
+    if(g>r+30&&g>b+10&&g>55)k=1;else if(r>g+50&&r>b+40&&r>90)k=2;
+    if(k){cls[y*w+x]=k;col[x]++}
+  }
+  var gr=[],s=-1;
+  for(x=0;x<=w;x++){var on=x<w&&col[x]>0;if(on&&s<0)s=x;if(!on&&s>=0){gr.push([s,x-1]);s=-1}}
+  gr=gr.filter(function(g){return g[1]-g[0]>=2});
+  var ws=gr.map(function(g){return g[1]-g[0]+1}).sort(function(a,b){return a-b}),med=ws.length?ws[Math.floor(ws.length/2)]:0;
+  var segs=[];
+  gr.forEach(function(g){var wd=g[1]-g[0]+1;if(med&&wd>1.7*med){var n=Math.round(wd/med),st=wd/n;for(var q=0;q<n;q++)segs.push([Math.round(g[0]+q*st),Math.round(g[0]+(q+1)*st-1)])}else segs.push(g)});
+  var out=[];
+  segs.forEach(function(g){
+    var rows=new Uint16Array(h),nr=0,ng=0;
+    for(y=0;y<h;y++)for(x=g[0];x<=g[1];x++){var k=cls[y*w+x];if(k){rows[y]++;if(k===1)ng++;else nr++}}
+    var mx=0,top=-1,bot=-1;
+    for(y=0;y<h;y++){if(rows[y]>mx)mx=rows[y];if(rows[y]>0){if(top<0)top=y;bot=y}}
+    if(top<0||bot-top<2&&mx<3)return;
+    var bt=-1,bb=-1;
+    for(y=0;y<h;y++)if(rows[y]>=0.5*mx){if(bt<0)bt=y;bb=y}
+    var green=ng>=nr;
+    out.push({x:(g[0]+g[1])/2,hi:-top,lo:-bot,cl:green?-bt:-bb,op:green?-bb:-bt,g:green});
+  });
+  return out;
+}
+
+/* ---- ইন্ডিকেটর ---- */
+function sma(a,p){return a.map(function(_,i){if(i<p-1)return null;var s=0;for(var j=i-p+1;j<=i;j++){if(a[j]==null)return null;s+=a[j]}return s/p})}
+function ema(a,p){var r=[],k=2/(p+1),e=null,s=0,c=0;a.forEach(function(v){if(v==null){r.push(null);return}c++;if(c<p){s+=v;r.push(null)}else if(c===p){s+=v;e=s/p;r.push(e)}else{e=v*k+e*(1-k);r.push(e)}});return r}
+function rsi(a,p){var r=[null],g=0,l=0;for(var i=1;i<a.length;i++){var d=a[i]-a[i-1],u=Math.max(d,0),n=Math.max(-d,0);
+  if(i<=p){g+=u;l+=n;if(i===p){g/=p;l/=p;r.push(l===0?100:100-100/(1+g/l))}else r.push(null)}
+  else{g=(g*(p-1)+u)/p;l=(l*(p-1)+n)/p;r.push(l===0?100:100-100/(1+g/l))}}return r}
+function adxf(Hh,Ll,C,p){
+  var n=C.length,a=new Array(n).fill(null),PI=new Array(n).fill(null),MI=new Array(n).fill(null),tr=[],pd=[],md=[],i;
+  for(i=1;i<n;i++){var u=Hh[i]-Hh[i-1],d=Ll[i-1]-Ll[i];pd[i]=(u>d&&u>0)?u:0;md[i]=(d>u&&d>0)?d:0;tr[i]=Math.max(Hh[i]-Ll[i],Math.abs(Hh[i]-C[i-1]),Math.abs(Ll[i]-C[i-1]))}
+  var st=0,sp=0,sm=0,dx=[],ax=null;
+  for(i=1;i<n;i++){
+    if(i<=p){st+=tr[i];sp+=pd[i];sm+=md[i];if(i<p)continue}
+    else{st+=tr[i]-st/p;sp+=pd[i]-sp/p;sm+=md[i]-sm/p}
+    var pi=st?100*sp/st:0,mi=st?100*sm/st:0;PI[i]=pi;MI[i]=mi;
+    dx[i]=(pi+mi)?100*Math.abs(pi-mi)/(pi+mi):0;
+    if(i>=2*p-1){if(ax===null){var s=0;for(var j=p;j<=2*p-1;j++)s+=dx[j];ax=s/p}else ax=(ax*(p-1)+dx[i])/p;a[i]=ax}
+  }
+  return{adx:a,pdi:PI,mdi:MI};
+}
+function indicators(c){
+  var C=c.map(function(q){return q.cl}),Hh=c.map(function(q){return q.hi}),Ll=c.map(function(q){return q.lo});
+  var e9=ema(C,9),e21=ema(C,21),mid=sma(C,20);
+  var up=[],lo=[];
+  mid.forEach(function(m,i){if(m==null){up.push(null);lo.push(null);return}var s=0;for(var j=i-19;j<=i;j++)s+=(C[j]-m)*(C[j]-m);var sd=Math.sqrt(s/20);up.push(m+2*sd);lo.push(m-2*sd)});
+  var f=ema(C,12),sl=ema(C,26),mc=C.map(function(_,i){return f[i]!=null&&sl[i]!=null?f[i]-sl[i]:null}),sg=ema(mc,9),hist=mc.map(function(m,i){return m!=null&&sg[i]!=null?m-sg[i]:null});
+  var raw=C.map(function(_,i){if(i<13)return null;var hh=-Infinity,ll=Infinity;for(var j=i-13;j<=i;j++){if(Hh[j]>hh)hh=Hh[j];if(Ll[j]<ll)ll=Ll[j]}return hh===ll?50:(C[i]-ll)/(hh-ll)*100});
+  var K=sma(raw,3),D=sma(K,3);
+  var A=adxf(Hh,Ll,C,14);return{C:C,H:Hh,L:Ll,e9:e9,e21:e21,mid:mid,up:up,lo:lo,mc:mc,sg:sg,hist:hist,rsi:rsi(C,14),K:K,D:D,adx:A.adx,pdi:A.pdi,mdi:A.mdi};
+}
+
+/* ---- সিগন্যালের নিয়ম ---- */
+function decide(c,I,smode){
+  var n=c.length-1,warn=[],R=I.rsi;
+  var ok=function(){for(var i=0;i<arguments.length;i++)if(arguments[i]==null)return false;return true};
+  var rg=0,bd=0;for(var i=n-13;i<=n;i++){rg+=c[i].hi-c[i].lo;bd+=Math.abs(c[i].cl-c[i].op)}rg/=14;bd/=14;
+  if(rg<1)rg=1;
+  var hist=I.hist,K=I.K,D=I.D;
+  var need=ok(I.e21[n],I.up[n],R[n],hist[n],hist[n-1],K[n],D[n],K[n-1],D[n-1]);
+  if(!need)return{err:"ইন্ডিকেটর হিসাবের জন্য ক্যান্ডেল কম পাওয়া গেছে ("+c.length+"টা)। জুম আউট করে আরও ক্যান্ডেল দেখিয়ে স্ক্রিনশট নিন, বা ক্রপ বড় করুন।"};
+  if(c.length<50)warn.push("মাত্র "+bn(c.length,0)+"টা ক্যান্ডেল পাওয়া গেছে। ৫০-এর কম হলে ইন্ডিকেটরের মান কম নির্ভরযোগ্য।");
+  var gap=Math.abs(I.e9[n]-I.e21[n])/rg,dir=I.e9[n]>I.e21[n]?1:-1;
+  var s9=I.e9[n]-I.e9[n-3],s21=I.e21[n]-I.e21[n-3];
+  var AX=I.adx[n];var trend=gap>=0.6&&((dir>0&&s9>0&&s21>0)||(dir<0&&s9<0&&s21<0))&&(AX==null||AX>=20);
+  var mode=trend?"কন্টিনিউয়েশন":"রিভার্সাল";
+  var bpos=(c[n].cl-I.lo[n])/(I.up[n]-I.lo[n])*100;
+  var pat=function(k,bull){var q=c[k],p=c[k-1],b=Math.abs(q.cl-q.op),bb=Math.max(b,1),top=Math.max(q.op,q.cl),bot=Math.min(q.op,q.cl);
+    var lw=bot-q.lo,uw=q.hi-top;
+    if(bull)return(lw>=2*bb&&uw<=bb+1)||(p.cl<p.op&&q.cl>q.op&&q.cl>=p.op&&q.op<=p.cl);
+    return(uw>=2*bb&&lw<=bb+1)||(p.cl>p.op&&q.cl<q.op&&q.cl<=p.op&&q.op>=p.cl)};
+  // Screenshot-derived market structure: local swing levels + regression trendlines.
+  var start=Math.max(2,n-29), lows=[], highs=[];
+  for(var z0=start;z0<n-1;z0++){
+    if(c[z0].lo<=c[z0-1].lo&&c[z0].lo<=c[z0+1].lo)lows.push({i:z0,x:c[z0].x,v:c[z0].lo});
+    if(c[z0].hi>=c[z0-1].hi&&c[z0].hi>=c[z0+1].hi)highs.push({i:z0,x:c[z0].x,v:c[z0].hi});
+  }
+  var sup=-Infinity,res=Infinity;
+  lows.forEach(function(q){if(q.i<n-2&&q.v<=c[n].cl+1.5*rg&&q.v>sup)sup=q.v});
+  highs.forEach(function(q){if(q.i<n-2&&q.v>=c[n].cl-1.5*rg&&q.v<res)res=q.v});
+  if(!isFinite(sup)){sup=Math.min.apply(null,c.slice(Math.max(0,n-25),n-2).map(function(q){return q.lo}))}
+  if(!isFinite(res)){res=Math.max.apply(null,c.slice(Math.max(0,n-25),n-2).map(function(q){return q.hi}))}
+  var regFit=function(a){if(a.length<2)return{slope:0,intercept:a.length?a[0].v:0};var m=a.length,sx=0,sy=0,sxx=0,sxy=0;a.forEach(function(q){sx+=q.x;sy+=q.v;sxx+=q.x*q.x;sxy+=q.x*q.v});var den=m*sxx-sx*sx,sl=den?(m*sxy-sx*sy)/den:0;return{slope:sl,intercept:(sy-sl*sx)/m}};
+  var fitLo=regFit(lows.slice(-5)),fitHi=regFit(highs.slice(-5)),slLo=fitLo.slope,slHi=fitHi.slope,nearSup=Math.abs(c[n].lo-sup)<=1.4*rg||Math.abs(c[n].cl-sup)<=1.4*rg,nearRes=Math.abs(c[n].hi-res)<=1.4*rg||Math.abs(c[n].cl-res)<=1.4*rg;
+  var supportBounce=nearSup&&c[n].cl>c[n].op, resistanceReject=nearRes&&c[n].cl<c[n].op;
+  var upTL=slLo>0.04*rg,downTL=slHi< -0.04*rg;
+  var buy=[],sell=[];
+  var T=function(a,t,v){a.push({t:t,ok:!!v})};
+  if(!trend){
+    T(buy,"দাম নিচের Bollinger Band ছুঁয়েছে (ব্যান্ডের মধ্যে অবস্থান "+bn(bpos,0)+"%)",c[n].lo<=I.lo[n]||c[n].cl<=I.lo[n]);
+    T(buy,"RSI ৩০-এর নিচে বা ৩০ থেকে উঠছে (RSI "+bn(R[n])+")",R[n]<=32||(R[n-1]<30&&R[n]>R[n-1]));
+    T(buy,"Stochastic ২০-এর নিচ থেকে উপরে ক্রস করছে (K "+bn(K[n])+", D "+bn(D[n])+")",(K[n-1]<=D[n-1]&&K[n]>D[n]&&Math.min(K[n-1],D[n-1])<=25)||(K[n]<20&&K[n]>K[n-1]));
+    T(buy,"MACD হিস্টোগ্রাম নিচ থেকে উঠছে বা বুলিশ ক্রস",(hist[n-1]<0&&hist[n]>hist[n-1])||(hist[n-1]<=0&&hist[n]>0));
+    T(buy,"সাপোর্টের কাছে বুলিশ প্যাটার্ন (হ্যামার বা এনগালফিং)",(pat(n,true)||pat(n-1,true))&&(Math.min(c[n].lo,c[n-1].lo)<=sup+0.6*rg||c[n].lo<=I.lo[n]));
+    T(sell,"দাম উপরের Bollinger Band ছুঁয়েছে (ব্যান্ডের মধ্যে অবস্থান "+bn(bpos,0)+"%)",c[n].hi>=I.up[n]||c[n].cl>=I.up[n]);
+    T(sell,"RSI ৭০-এর উপরে বা ৭০ থেকে নামছে (RSI "+bn(R[n])+")",R[n]>=68||(R[n-1]>70&&R[n]<R[n-1]));
+    T(sell,"Stochastic ৮০-এর উপর থেকে নিচে ক্রস করছে (K "+bn(K[n])+", D "+bn(D[n])+")",(K[n-1]>=D[n-1]&&K[n]<D[n]&&Math.max(K[n-1],D[n-1])>=75)||(K[n]>80&&K[n]<K[n-1]));
+    T(sell,"MACD হিস্টোগ্রাম উপর থেকে নামছে বা বেয়ারিশ ক্রস",(hist[n-1]>0&&hist[n]<hist[n-1])||(hist[n-1]>=0&&hist[n]<0));
+    T(sell,"রেজিস্ট্যান্সে বেয়ারিশ প্যাটার্ন (শুটিং স্টার বা এনগালফিং)",(pat(n,false)||pat(n-1,false))&&(Math.max(c[n].hi,c[n-1].hi)>=res-0.6*rg||c[n].hi>=I.up[n]));
+  }else if(dir>0){
+    T(buy,"EMA ৯ > EMA ২১ এবং দুটোই উপরমুখী (ফাঁক গড় ক্যান্ডেলের "+bn(gap)+" গুণ)",gap<=3);
+    T(buy,"দাম EMA-তে পুলব্যাক করে আবার উপরে উঠেছে",Math.min(c[n].lo,c[n-1].lo,c[n-2].lo)<=I.e9[n]+0.3*rg&&c[n].cl>I.e9[n]);
+    T(buy,"RSI ৫০ থেকে ৬৫-র মধ্যে (RSI "+bn(R[n])+")",R[n]>=50&&R[n]<=65);
+    T(buy,"MACD সিগন্যালের উপরে এবং হিস্টোগ্রাম বাড়ছে",I.mc[n]>I.sg[n]&&hist[n]>hist[n-1]);
+    T(buy,"Stochastic ৫০-এর উপরে ও বুলিশ ক্যান্ডেলের বডি শক্ত (K "+bn(K[n])+")",K[n]>50&&c[n].cl>c[n].op&&Math.abs(c[n].cl-c[n].op)>=0.4*bd);
+  }else{
+    T(sell,"EMA ৯ < EMA ২১ এবং দুটোই নিম্নমুখী (ফাঁক গড় ক্যান্ডেলের "+bn(gap)+" গুণ)",gap<=3);
+    T(sell,"দাম EMA-তে পুলব্যাক করে আবার নিচে নেমেছে",Math.max(c[n].hi,c[n-1].hi,c[n-2].hi)>=I.e9[n]-0.3*rg&&c[n].cl<I.e9[n]);
+    T(sell,"RSI ৩৫ থেকে ৫০-র মধ্যে (RSI "+bn(R[n])+")",R[n]>=35&&R[n]<=50);
+    T(sell,"MACD সিগন্যালের নিচে এবং হিস্টোগ্রাম কমছে",I.mc[n]<I.sg[n]&&hist[n]<hist[n-1]);
+    T(sell,"Stochastic ৫০-এর নিচে ও বেয়ারিশ ক্যান্ডেলের বডি শক্ত (K "+bn(K[n])+")",K[n]<50&&c[n].cl<c[n].op&&Math.abs(c[n].cl-c[n].op)>=0.4*bd);
+  }
+  T(buy,"Support লেভেলের কাছে বুলিশ রিঅ্যাকশন",supportBounce);
+  T(sell,"Resistance লেভেলের কাছে বেয়ারিশ রিঅ্যাকশন",resistanceReject);
+  T(buy,"Swing-low Trendline ঊর্ধ্বমুখী",upTL);
+  T(sell,"Swing-high Trendline নিম্নমুখী",downTL);
+  var cnt=function(a){return a.filter(function(x){return x.ok}).length};
+  var sb=cnt(buy),ss=cnt(sell),sig="অপেক্ষা";
+  // Flexible confirmation: 3+ signals and at least one point advantage; avoid equal-score guesses.
+  if(sb>=3&&sb>=ss+1)sig="Buy";else if(ss>=3&&ss>=sb+1)sig="Sell";
+  var lo20=Infinity,hi20=-Infinity;for(var j=n-19;j<=n;j++){var cc=c[j].cl;if(cc<lo20)lo20=cc;if(cc>hi20)hi20=cc}
+  var lab=AX==null?"-":AX<20?"দুর্বল বা রেঞ্জ":AX<25?"উঠছে":AX<40?"শক্তিশালী":"অতি শক্তিশালী";
+  var flt=[],F=function(t,pass,block){flt.push({t:t,ok:pass});if(!pass&&block)warn.push("সতর্কতা: "+t)};
+  F("দাম সাইডওয়েজ বা খুব ছোট নয়",hi20-lo20>=2*rg,true);
+  if(AX!=null){
+    if(trend)F("ADX "+bn(AX)+" ("+lab+") এবং +DI/-DI ট্রেন্ডের দিকে একমত",(dir>0)===(I.pdi[n]>I.mdi[n]),true);
+    else F("ADX "+bn(AX)+" ("+lab+"): রিভার্সালের জন্য ট্রেন্ড খুব শক্তিশালী নয় (৩৫-এর নিচে)",AX<=35,true);
+  }
+  F("EMA ৯ ও ২১ অতিরিক্ত ফাঁক নয়",!(trend&&gap>3),true);
+  var run=1;for(var q=n-1;q>=n-6&&q>=0&&c[q].g===c[n].g;q--)run++;
+  if(!trend)F("টানা ৫টা একই রঙের ক্যান্ডেলের ঝোঁক নেই (এখন "+bn(run,0)+"টা)",run<5,true);
+  F("সাম্প্রতিক ক্যান্ডেলে হঠাৎ বড় লাফ নেই (OTC)",Math.max(c[n].hi-c[n].lo,c[n-1].hi-c[n-1].lo)<=3.5*rg,true);
+  var bw=[];for(var z=n-19;z<=n;z++)if(I.up[z]!=null)bw.push(I.up[z]-I.lo[z]);
+  if(bw.length>=10){var cu=bw[bw.length-1],md2=bw.slice().sort(function(a,b){return a-b})[Math.floor(bw.length/2)];F("Bollinger ব্যান্ড সংকুচিত নয় (ব্রেকআউটের ঝুঁকি কম)",cu>=0.6*md2,false)}
+  warn.push("চলমান ক্যান্ডেল শেষ হওয়া পর্যন্ত বদলায়। শেষ ১০ সেকেন্ডে সংকেত বদলে যেতে পারে।");
+  warn.push("Support/Resistance ও Trendline শনাক্ত ক্যান্ডেলের পিক্সেল-জ্যামিতি থেকে গণনা করা; প্রকৃত market-price level নয়। সঠিক price/time scale বা live OHLC data ছাড়া একে exact বলা যাবে না।");
+  var lead=(sb>=ss&&(buy.length||!sell.length))?buy:sell;
+  if(!buy.length)lead=sell;if(!sell.length)lead=buy;
+  var sm0=smode||"braz",G=function(k){return c[k].g},Z=function(k){return Math.abs(c[k].cl-c[k].op)};
+  var bB=[{t:"টানা ৩টা সবুজ ক্যান্ডেল (আগের ৩টা)",ok:G(n-4)&&G(n-3)&&G(n-2)},{t:"তারপর ১টা লাল ক্যান্ডেল (পুলব্যাক)",ok:!G(n-1)},{t:"তারপর আবার ১টা সবুজ, এটাই এন্ট্রি ক্যান্ডেল",ok:G(n)}];
+  var bS=[{t:"টানা ৩টা লাল ক্যান্ডেল (আগের ৩টা)",ok:!G(n-4)&&!G(n-3)&&!G(n-2)},{t:"তারপর ১টা সবুজ ক্যান্ডেল (পুলব্যাক)",ok:G(n-1)},{t:"তারপর আবার ১টা লাল, এটাই এন্ট্রি ক্যান্ডেল",ok:!G(n)}];
+  var nb=bB.filter(function(x){return x.ok}).length,ns=bS.filter(function(x){return x.ok}).length;
+  var bzF=[{t:"দাম সাইডওয়েজ বা খুব ছোট নয়",ok:hi20-lo20>=2*rg},
+    {t:"সাম্প্রতিক ক্যান্ডেলে হঠাৎ বড় লাফ নেই (OTC)",ok:Math.max(c[n].hi-c[n].lo,c[n-1].hi-c[n-1].lo)<=3.5*rg},
+    {t:"৫টা ক্যান্ডেলের কোনোটাই প্রায় দোজি (বডি ছাড়া) নয়",ok:Z(n-4)>=0.15*bd&&Z(n-3)>=0.15*bd&&Z(n-2)>=0.15*bd&&Z(n-1)>=0.15*bd&&Z(n)>=0.1*bd}];
+  var bzP=bzF.every(function(x){return x.ok});
+  var bzSig=nb===3&&bzP?"Buy":(ns===3&&bzP?"Sell":"অপেক্ষা");
+  var bzList=nb>=ns?bB:bS;
+  var fin=sm0==="braz"?bzSig:(sm0==="ind"?sig:(bzSig!=="অপেক্ষা"&&sig!=="অপেক্ষা"&&bzSig!==sig?"অপেক্ষা":(sig!=="অপেক্ষা"?sig:bzSig)));
+  var FL=sm0==="braz"?bzList:(sm0==="ind"?lead:bzList.concat(lead));
+  var FF=sm0==="braz"?bzF:(sm0==="ind"?flt:flt.concat(bzF));
+  if(sm0!=="ind")warn.push("কোনো candle pattern বা indicator লাভ নিশ্চিত করে না। Demo-তে অন্তত ১০০টি signal log করে win-rate ও payout যাচাই করুন।");
+  return{sig:fin,mode:mode,sb:sb,ss:ss,list:FL,warn:warn,flt:FF,smode:sm0,bz:{nb:nb,ns:ns,sig:bzSig},structure:{sup:sup,res:res,fitLo:fitLo,fitHi:fitHi,upTL:upTL,downTL:downTL},
+    vals:[["EMA ৯ বনাম ২১",I.e9[n]>I.e21[n]?"৯ উপরে":"৯ নিচে"],["Bollinger-এর মধ্যে অবস্থান",bn(bpos,0)+"%"],["RSI (১৪)",bn(R[n])],["Stochastic K / D",bn(K[n])+" / "+bn(D[n])],["MACD হিস্টোগ্রাম",hist[n]>hist[n-1]?"বাড়ছে":"কমছে"],["শেষ ৫ ক্যান্ডেল (পুরনো থেকে নতুন)",[n-4,n-3,n-2,n-1,n].map(function(k){return c[k].g?"সবুজ":"লাল"}).join(", ")],["ADX (ট্রেন্ডের শক্তি)",AX==null?"-":bn(AX)+" ("+lab+")"],["EMA ২১-এর ঢাল (১০ ক্যান্ডেল)",I.e21[n-10]==null?"-":bn(Math.abs(I.e21[n]-I.e21[n-10])/rg)+" গুণ ক্যান্ডেল রেঞ্জ"],["ক্যান্ডেল পাওয়া গেছে",bn(c.length,0)+"টা"],["আনুমানিক Support (স্ক্রিনশট পিক্সেল)",bn(sup)],["আনুমানিক Resistance (স্ক্রিনশট পিক্সেল)",bn(res)],["Swing-low Trendline",upTL?"ঊর্ধ্বমুখী":(downTL?"সম্ভাব্য নিম্নমুখী":"সমতল/অস্পষ্ট")],["Trendline slope score",bn(slLo,3)+" / "+bn(slHi,3)]]};
+}
+
+function fill(id,a){var u=$(id);u.textContent="";(a.length?a:["কিছু নেই"]).forEach(function(t){var li=document.createElement("li");li.textContent=t;u.appendChild(li)})}
+$("auto").onclick=function(){doAuto()};
+$("go").onclick=function(){
+  var st=$("status");st.className="sub";st.textContent="";
+  if(!src)return;
+  var b=box(),d=src.getContext("2d").getImageData(b.x,b.y,b.w,b.h).data;
+  var c=extract(d,b.w,b.h);
+  if(c.length<30){st.textContent="ক্যান্ডেল পাওয়া গেছে মাত্র "+bn(c.length,0)+"টা। ক্রপ বক্স ঠিক করুন যাতে শুধু ক্যান্ডেল থাকে, আর চার্ট জুম আউট করুন।";st.className="sub err";return}
+  var I=indicators(c),r=decide(c,I,$("sm").value);
+  res={c:c,ind:I,structure:r.structure};draw();
+  if(r.err){st.textContent=r.err;st.className="sub err";return}
+  var e=$("sig");e.textContent=r.sig;e.className="sig "+(r.sig==="অপেক্ষা"?"wait":r.sig);
+  $("meta").textContent=r.smode==="braz"?"Brazilian Candle Pattern। Buy শর্ত "+bn(r.bz.nb,0)+"/৩, Sell শর্ত "+bn(r.bz.ns,0)+"/৩।":(r.smode==="both"?"Smart Mix: Indicator/structure signal-কে অগ্রাধিকার; Brazilian pattern বিপরীত হলে সতর্কতা। Pattern result: "+r.bz.sig+"। ":"")+"ইন্ডিকেটর/স্ট্রাকচার মোড: "+r.mode+"। Buy স্কোর "+bn(r.sb,0)+", Sell স্কোর "+bn(r.ss,0)+" (ইন্ডিকেটর + স্ট্রাকচার কনফার্মেশন)।";
+  fill("met",r.list.filter(function(x){return x.ok}).map(function(x){return x.t}));
+  fill("miss",r.list.filter(function(x){return !x.ok}).map(function(x){return x.t}));
+  fill("flt",r.flt.map(function(x){return(x.ok?"✓ ":"✗ ")+x.t}));fill("wrn",r.warn);
+  var tb=$("vals");tb.textContent="";r.vals.forEach(function(v){var tr=document.createElement("tr");v.forEach(function(t){var td=document.createElement("td");td.textContent=t;tr.appendChild(td)});tb.appendChild(tr)});
+  $("out").hidden=false;cv.scrollIntoView({block:"start"});
+};
+})();
+
+// Safe read-only OHLC test. Browser talks only to YOUR backend, never to the provider with a secret key.
+var apiBtn=document.getElementById('testApi');
+if(apiBtn){apiBtn.addEventListener('click',async function(){
+ var status=document.getElementById('apiStatus'),url=(document.getElementById('backendUrl').value||'').trim().replace(/\/$/,''),venue=document.getElementById('apiVenue').value,symbol=document.getElementById('apiSymbol').value;
+ status.className='sub';status.textContent='ডেটা পরীক্ষা হচ্ছে…';document.getElementById('apiResults').hidden=true;
+ if(!url){status.className='sub err';status.textContent='আগে backend URL দিতে হবে। API key এখানে লিখবে না।';return;}
+ try{
+  var resp=await fetch(url+'/api/candles?venue='+encodeURIComponent(venue)+'&symbol='+encodeURIComponent(symbol)+'&timeframe=1m&limit=5',{headers:{'Accept':'application/json'}});
+  var data=await resp.json().catch(function(){return null;});
+  if(!resp.ok)throw new Error((data&&data.error)||('HTTP '+resp.status));
+  var arr=Array.isArray(data)?data:(data&&(data.candles||data.data||data.results));
+  if(!Array.isArray(arr)||!arr.length)throw new Error('API থেকে candle array পাওয়া যায়নি। Backend response format যাচাই করো।');
+  var norm=arr.map(function(c){return {time:c.time??c.timestamp??c.t??c.datetime??'',open:c.open??c.o,high:c.high??c.h,low:c.low??c.l,close:c.close??c.c};});
+  if(!norm.every(function(c){return [c.open,c.high,c.low,c.close].every(function(v){return Number.isFinite(Number(v));});}))throw new Error('OHLC fields অনুপস্থিত বা সংখ্যাসূচক নয়।');
+  var tb=document.getElementById('apiTable');tb.textContent='';
+  [['সময়','time'],['Open','open'],['High','high'],['Low','low'],['Close','close']].forEach(function(pair){var tr=document.createElement('tr');var a=document.createElement('td');a.textContent=pair[0];tr.appendChild(a);norm.forEach(function(c){var td=document.createElement('td');td.textContent=String(c[pair[1]]);tr.appendChild(td)});tb.appendChild(tr);});
+  document.getElementById('apiMeta').textContent='ডেটা পাওয়া গেছে: '+norm.length+'টি candle · '+venue+' · '+symbol+' · 1m';document.getElementById('apiResults').hidden=false;status.textContent='সফল: OHLC ডেটা পাওয়া গেছে। এটি শুধু ডেটা পরীক্ষা—নিশ্চিত ট্রেডিং সিগন্যাল নয়।';
+ }catch(e){status.className='sub err';status.textContent='সংযোগ ব্যর্থ: '+e.message+'. Backend deploy, API key, symbol ও CORS সেটিংস যাচাই করো।';}
+});}
+
+</script>
+</body>
+</html>
